@@ -27,21 +27,27 @@ def generate_launch_description():
             parameters=[server_params]
         ),
         Node(
-            package='crazyflie',
-            executable='leader_cf.py',
-            name='vel_mux',
+           package='crazyflie',
+            executable='trajectory_publisher.py',
+            name='trajectory_publisher',
             output='screen',
-            parameters=[{'hover_height': 0.3},
+        ),
+        Node(
+            package='crazyflie',
+            executable='begin_operation.py',
+            name='begin_operation',
+            output='screen',
+            parameters=[{'hover_height': 0.05},
                         {'incoming_twist_topic': '/cmd_vel'},
                         {'robot_prefix': '/cf1'}]
         ),
-        #Node(
-         #  package='crazyflie',
-         #   executable='vel_mux.py',
-         #   name='vel_mux',
-         #   output='screen',
-         #   parameters=[{'hover_height': 0.3},
-         #               {'incoming_twist_topic': '/cmd_vel'},
-         #               {'robot_prefix': '/cf2'}]
-        #),
+        Node(
+            package='crazyflie',
+            executable='begin_operation.py',
+            name='begin_operation',
+            output='screen',
+            parameters=[{'hover_height': 0.05},
+                        {'incoming_twist_topic': '/cmd_vel'},
+                        {'robot_prefix': '/cf2'}]
+        ),
     ])

@@ -17,6 +17,8 @@ find_package(crazyflie_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(motion_capture_tracking_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
+#find_package(scipy REQUIRED)
+#find_package(numpy REQUIRED)
 
 # add dependencies
 add_subdirectory(deps/crazyflie_tools)
@@ -109,6 +111,12 @@ install(PROGRAMS
   scripts/vel_mux.py
   scripts/cfmult.py
   scripts/simple_mapper_multiranger.py
+  scripts/leader_cf.py
+  scripts/follower_cf.py
+  scripts/trajectory_publisher.py
+  scripts/begin_operation.py
+  scripts/mid_operation.py
+  scripts/autonomous_sequence.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

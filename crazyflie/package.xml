@@ -16,7 +16,9 @@
   <depend>sensor_msgs</depend>
   <depend>crazyflie_interfaces</depend>
   <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>motion_capture_tracking_interfaces</depend>
+  <depend>cflib</depend>
 
   <exec_depend>tf_transformations</exec_depend>
 

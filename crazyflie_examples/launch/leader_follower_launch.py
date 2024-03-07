@@ -29,19 +29,19 @@ def generate_launch_description():
         Node(
             package='crazyflie',
             executable='leader_cf.py',
-            name='vel_mux',
+            name='leader_cf',
             output='screen',
             parameters=[{'hover_height': 0.3},
                         {'incoming_twist_topic': '/cmd_vel'},
                         {'robot_prefix': '/cf1'}]
         ),
-        #Node(
-         #  package='crazyflie',
-         #   executable='vel_mux.py',
-         #   name='vel_mux',
-         #   output='screen',
-         #   parameters=[{'hover_height': 0.3},
-         #               {'incoming_twist_topic': '/cmd_vel'},
-         #               {'robot_prefix': '/cf2'}]
-        #),
+        Node(
+           package='crazyflie',
+            executable='follower_cf.py',
+            name='follower_cf',
+            output='screen',
+            parameters=[{'hover_height': 0.3},
+                        {'leader_robot_prefix': '/cf1'},
+                        {'robot_prefix': '/cf2'}]
+        ),
     ])
