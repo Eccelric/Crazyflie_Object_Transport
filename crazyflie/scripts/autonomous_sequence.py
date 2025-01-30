@@ -38,23 +38,37 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper
-
+import numpy as np
+import scipy.io
 # URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E701')
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E702')
 
 # Change the sequence according to your setup
 #             x    y    z  YAW
 sequence = [
+    (0.0, 0.0, 0.3, 0),
+    (0.0, 0.0, 0.3, 0),
+    (0.2, 0.1, 0.3, 0),
+    (0.2, 0.3, 0.3, 0),
+    (-0.2, 0.2, 0.3, 0),
+    (-0.2, 0.0, 0.3, 0),
+    (0.0, 0.0, 0.3, 0),
     (0.0, 0.0, 0.2, 0),
-    (0.0, 0.0, 0.5, 0),
-    (0.1, 0.0, 0.5, 0),
-    (0.1, 0.1, 0.5, 0),
-    (-0.1, 0.1, 0.5, 0),
-    (-0.1, 0.0, 0.5, 0),
-    (0.0, 0.0, 0.5, 0),
-    (0.0, 0.0, 0.4, 0),
 ]
 
+indexx=-1
+
+z_pos = []
+x_pos = []
+y_pos = []
+
+des_x_pos=[]
+des_y_pos=[]
+des_z_pos=[]
+
+time_stamp = []
+i = True
+origin=(0.00,0.00,0.0,0.0)
 
 def wait_for_position_estimator(scf):
     print('Waiting for estimator to find position...')
@@ -105,11 +119,23 @@ def reset_estimator(scf):
 
     wait_for_position_estimator(cf)
 
-
 def position_callback(timestamp, data, logconf):
     x = data['kalman.stateX']
     y = data['kalman.stateY']
     z = data['kalman.stateZ']
+
+    x_pos.append(x)
+    y_pos.append(y)
+    z_pos.append(z)
+
+    des_x_pos.append(sequence[indexx][0])
+    des_y_pos.append(sequence[indexx][1])
+    des_z_pos.append(sequence[indexx][2])
+
+    time_stamp.append(timestamp)
+
+
+
     print('pos: ({}, {}, {})'.format(x, y, z))
 
 
@@ -128,12 +154,19 @@ def run_sequence(scf, sequence):
     cf = scf.cf
 
     for position in sequence:
+        indexx=indexx+1
+        final_position=np.zeros(4)
         print('Setting position {}'.format(position))
         for i in range(50):
-            cf.commander.send_position_setpoint(position[0],
-                                                position[1],
-                                                position[2],
-                                                position[3])
+        
+            final_position[0]=position[0]-origin[0]
+            final_position[1]=position[1]-origin[1]
+            final_position[2]=position[2]-origin[2]
+            #print(origin)
+            cf.commander.send_position_setpoint(final_position[0],
+                                                final_position[1],
+                                                final_position[2],
+                                                final_position[3])
             time.sleep(0.1)
 
     cf.commander.send_stop_setpoint()
@@ -144,11 +177,24 @@ def run_sequence(scf, sequence):
     # since the message queue is not flushed before closing
     time.sleep(0.1)
 
+def write_into_file():
+        z_mat=np.array(z_pos)
+        y_mat=np.array(y_pos)
+        x_mat=np.array(x_pos)
+
+        zd_mat=np.array(des_z_pos)
+        yd_mat=np.array(des_y_pos)
+        xd_mat=np.array(des_x_pos)
+
+        t_mat=np.array(time_stamp)
+        
+        scipy.io.savemat('/home/abd/exp_ws/ros_bag_files/cf_pos.mat', dict(t1=t_mat, x1=x_mat,y1=y_mat,z=z_mat,xd=xd_mat,yd=yd_mat,zd=zd_mat))
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         reset_estimator(scf)
-        # start_position_printing(scf)
+        start_position_printing(scf)
         run_sequence(scf, sequence)
+        write_into_file()

@@ -46,7 +46,7 @@ class FollowerNode(Node):
         timer_period = 0.2
         self.follow = self.create_subscription(PoseStamped,leader_robot_prefix+'/pose',self.follow_update_callback,100)
         self.height = self.create_subscription(PoseStamped,robot_prefix+'/pose',self.callback_height,100)
-        self.flag_sub = self.create_subscription(Bool,'/flag',self.flag_callback,10)
+        #self.flag_sub = self.create_subscription(Bool,'/flag',self.flag_callback,10)
         self.timer = self.create_timer(timer_period, self.callback_timer)
         self.takeoff_client = self.create_client(Takeoff, robot_prefix + '/takeoff')
         self.publisher_hover = self.create_publisher(Hover, robot_prefix + '/cmd_hover', 10)
@@ -54,7 +54,7 @@ class FollowerNode(Node):
         self.cf_has_taken_off = False
         self.takeoff_client.wait_for_service()
         self.land_client.wait_for_service()
-        self.flag_pos = False
+        self.flag_pos = True
         self.current_height = 0.0
         self.gain = 0.5
 
@@ -70,8 +70,8 @@ class FollowerNode(Node):
 
     ##        self.received_first_cmd_vel = True
         
-    def flag_callback(self,msg):
-        self.flag_pos = msg.data
+    #def flag_callback(self,msg):
+    #    self.flag_pos = msg.data
 
     def callback_height(self,msg):
         self.z_pos.append(msg.pose.position.z)
@@ -91,7 +91,8 @@ class FollowerNode(Node):
             msg.vx = 0.0
             msg.vy = 0.0
             msg.yaw_rate = self.follow_cmd.pose.orientation.z
-            msg.z_distance = self.current_height+(self.follow_cmd.pose.position.z-self.current_height)*self.gain
+            msg.z_distance = self.follow_cmd.pose.position.z
+            #msg.z_distance = 0.5
             self.publisher_hover.publish(msg)
         else:
             msg.vx = 0.0

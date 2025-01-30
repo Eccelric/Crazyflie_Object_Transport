@@ -21,7 +21,7 @@ import numpy as np
 
 class LeaderNode(Node):
     def __init__(self):
-        super().__init__('leader_cf')
+        super().__init__('velocity_controller_test')
         self.declare_parameter('hover_height', 0.05)
         self.declare_parameter('robot_prefix', '/cf')
         self.declare_parameter('incoming_twist_topic', '/cmd_vel')
@@ -88,7 +88,7 @@ class LeaderNode(Node):
         self.desired_y_position = msg.linear.y
         self.desired_z_position = msg.linear.z
 
-        K = 1.7
+        K = 1.2
         ## Now that we have got the x,y,z coordinates from the /cf1/cmd_vel topic we need to convert it to velocity control inputs before publishing it to the 
         ## Hover message
 
@@ -111,16 +111,22 @@ class LeaderNode(Node):
     
     def callback_height(self,msg):
 
+    ## Wherever we place the Crazyflie it will take that point as the origin ##########################################
         if(self.first_val is False):
             self.init_x = msg.pose.position.x
             self.init_y = msg.pose.position.y
             self.init_z = msg.pose.position.z
             self.get_logger().info("............................Successfully Set the Origin .....................................................")
             self.first_val = True
-        
+    
+    ##### Setting the position of the crazyflie with respect to the set ORIGIN ##########################################3
+    
         self.x_position = msg.pose.position.x-self.init_x
         self.y_position = msg.pose.position.y-self.init_y
         self.z_position = msg.pose.position.z-self.init_z
+
+    
+    #### The position of the crazyflie is logged everytime the topic cf1/pose publishes message ##############################################
 
         self.z_pos.append(self.z_position)
         self.x_pos.append(self.x_position)
@@ -131,7 +137,8 @@ class LeaderNode(Node):
         self.des_z_pos.append(self.desired_z_position)
 
         self.time.append(msg.header.stamp.sec)
-        
+    
+    ###########################################################################################################################################
 
     def timer_callback(self):
         ##self.get_logger().info("Entered Timer call")
@@ -146,18 +153,10 @@ class LeaderNode(Node):
         if self.received_first_cmd_vel and self.cf_has_taken_off:
             if self.msg_cmd_vel.linear.z >= 0:
                 msg = Hover()
-                #msg.vx= self.msg_cmd_vel.linear.x
-                #msg.vy= self.msg_cmd_vel.linear.y
-                #msg.z_distance = self.msg_cmd_vel.linear.z
-                #msg.yaw_rate=0.0
                 msg = self.position_to_velocity(self.msg_cmd_vel)
-                #msg.vx = 0.0
-                #msg.vy = 0.0
-                #msg.yaw_rate = 0.0
-                #msg.z_distance = self.msg_cmd_vel.linear.z
                 self.get_logger().info("Hover request Initiated")
                 self.publisher_hover.publish(msg)
-                #self.get_logger().info("x:"+str(self.x_position)+" y: "+str(self.y_position)+" z: "+str(self.z_position))
+                self.get_logger().info("x:"+str(self.x_position)+" y: "+str(self.y_position)+" z: "+str(self.z_position))
             else:
                 req = NotifySetpointsStop.Request()
                 self.notify_client.call_async(req)
@@ -168,8 +167,6 @@ class LeaderNode(Node):
                 time.sleep(2.0)        
                 self.cf_has_taken_off = False
                 self.received_first_cmd_vel = False
-                
-
     def land_callback(self):
         req = Land.Request()
         req.height = 0.05

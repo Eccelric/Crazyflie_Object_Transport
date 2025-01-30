@@ -5,7 +5,6 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 import yaml
 
-
 def generate_launch_description():
     # load crazyflies
     crazyflies_yaml = os.path.join(
@@ -28,20 +27,12 @@ def generate_launch_description():
         ),
         Node(
             package='crazyflie',
-            executable='leader_cf.py',
-            name='leader_cf',
+            executable='position_controller.py',
+            name='position_controller',
             output='screen',
             parameters=[{'hover_height': 0.5},
                         {'incoming_twist_topic': '/cmd_vel'},
-                        {'robot_prefix': '/cf1'}]
-        ),
-        Node(
-           package='crazyflie',
-            executable='leader_cf.py',
-            name='leader_cf',
-            output='screen',
-            parameters=[{'hover_height': 0.5},
-                        {'incoming_twist_topic': '/cmd_vel'},
-                        {'robot_prefix': '/cf2'}]
+                        {'robot_prefix': '/cf2'}
+                        ]
         ),
     ])

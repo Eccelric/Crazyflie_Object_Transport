@@ -35,6 +35,7 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from cflib.utils import power_switch
 
 import tf_transformations
 from tf2_ros import TransformBroadcaster
@@ -259,6 +260,10 @@ class CrazyflieServer(Node):
                 Hover, name +
                 "/cmd_hover", partial(self._cmd_hover_changed, uri=uri), 10
             )
+            self.create_subscription(
+                Twist, name +
+                "/cmd_pos", partial(self._cmd_vel_position_changed, uri=uri), 10
+            )
             qos_profile = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
                                      history=QoSHistoryPolicy.KEEP_LAST,
                                      depth=1,
@@ -267,6 +272,7 @@ class CrazyflieServer(Node):
                 NamedPoseArray, "/poses",
                 self._poses_changed, qos_profile
             )
+            
 
     def _init_default_logblocks(self, prefix, link_uri, list_logvar, global_logging_enabled, topic_type):
         """
@@ -757,6 +763,8 @@ class CrazyflieServer(Node):
                 request.height, duration, group_mask=request.group_mask
             )
 
+        self.get_logger().info("---------------------------------------------------Service Complete-------------------------------------------------------")
+
         return response
 
     def _go_to_callback(self, request, response, uri="all"):
@@ -929,6 +937,17 @@ class CrazyflieServer(Node):
         thrust = int(min(max(msg.linear.z, 0, 0), 60000))
         self.swarm._cfs[uri].cf.commander.send_setpoint(
             roll, pitch, yawrate, thrust)
+        
+    def _cmd_vel_position_changed(self,msg,uri=""):
+        """
+        Topic update callback to control the position of the crazyflie
+        """
+        x = msg.linear.x
+        y = msg.linear.y
+        z = msg.linear.z
+        yaw = msg.angular.z
+
+        self.swarm._cfs[uri].cf.commander.send_position_setpoint(x,y,z,yaw)
 
     def _cmd_hover_changed(self, msg, uri=""):
         """
@@ -1053,9 +1072,15 @@ def main(args=None):
     cflib.crtp.init_drivers()
     rclpy.init(args=args)
     crazyflie_server = CrazyflieServer()
-
+    #try:
     rclpy.spin(crazyflie_server)
-
+    #except KeyboardInterrupt:
+        
+    #finally:
+    
+        #crazyflie_server.on_shutdown()
+        #crazyflie_server.destroy_node()
+        #rclpy.shutdown()
     crazyflie_server.destroy_node()
     rclpy.shutdown()
 

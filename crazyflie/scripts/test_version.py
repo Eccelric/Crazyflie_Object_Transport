@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 """
@@ -51,7 +52,7 @@ class LeaderNode(Node):
             10)
         self.msg_cmd_vel = Twist()
         self.received_first_cmd_vel = False
-        timer_period = 0.1
+        timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.takeoff_client = self.create_client(Takeoff, robot_prefix + '/takeoff')
         self.publisher_hover = self.create_publisher(Hover, robot_prefix + '/cmd_hover', 10)
@@ -88,12 +89,12 @@ class LeaderNode(Node):
         self.desired_y_position = msg.linear.y
         self.desired_z_position = msg.linear.z
 
-        K = 1.7
+        dt = 10.0
         ## Now that we have got the x,y,z coordinates from the /cf1/cmd_vel topic we need to convert it to velocity control inputs before publishing it to the 
         ## Hover message
 
-        vx = -(self.x_position-self.desired_x_position)*K
-        vy = -(self.y_position-self.desired_y_position)*K
+        vx = -(self.x_position-self.desired_x_position)/dt
+        vy = -(self.y_position-self.desired_y_position)/dt
 
         ret_msg = Hover()
         
@@ -122,9 +123,9 @@ class LeaderNode(Node):
         self.y_position = msg.pose.position.y-self.init_y
         self.z_position = msg.pose.position.z-self.init_z
 
-        self.z_pos.append(self.z_position)
-        self.x_pos.append(self.x_position)
-        self.y_pos.append(self.y_position)
+        self.z_pos.append(self.x_position)
+        self.x_pos.append(self.y_position)
+        self.y_pos.append(self.z_position)
 
         self.des_x_pos.append(self.desired_x_position)
         self.des_y_pos.append(self.desired_y_position)
@@ -146,18 +147,10 @@ class LeaderNode(Node):
         if self.received_first_cmd_vel and self.cf_has_taken_off:
             if self.msg_cmd_vel.linear.z >= 0:
                 msg = Hover()
-                #msg.vx= self.msg_cmd_vel.linear.x
-                #msg.vy= self.msg_cmd_vel.linear.y
-                #msg.z_distance = self.msg_cmd_vel.linear.z
-                #msg.yaw_rate=0.0
                 msg = self.position_to_velocity(self.msg_cmd_vel)
-                #msg.vx = 0.0
-                #msg.vy = 0.0
-                #msg.yaw_rate = 0.0
-                #msg.z_distance = self.msg_cmd_vel.linear.z
                 self.get_logger().info("Hover request Initiated")
                 self.publisher_hover.publish(msg)
-                #self.get_logger().info("x:"+str(self.x_position)+" y: "+str(self.y_position)+" z: "+str(self.z_position))
+                self.get_logger().info("x:"+str(self.x_position)+" y: "+str(self.y_position)+" z: "+str(self.z_position))
             else:
                 req = NotifySetpointsStop.Request()
                 self.notify_client.call_async(req)
@@ -168,8 +161,6 @@ class LeaderNode(Node):
                 time.sleep(2.0)        
                 self.cf_has_taken_off = False
                 self.received_first_cmd_vel = False
-                
-
     def land_callback(self):
         req = Land.Request()
         req.height = 0.05

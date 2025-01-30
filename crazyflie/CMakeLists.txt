@@ -117,6 +117,12 @@ install(PROGRAMS
   scripts/begin_operation.py
   scripts/mid_operation.py
   scripts/autonomous_sequence.py
+  scripts/trajectory.py
+  scripts/velocity_controller_test.py
+  scripts/setpoint_publisher.py
+  scripts/position_controller_1.py
+  scripts/position_controller_2.py
+  scripts/position_controller_3.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

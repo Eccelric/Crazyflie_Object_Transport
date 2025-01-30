@@ -1,73 +1,90 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
 from crazyflie_interfaces.srv import Takeoff, Land, NotifySetpointsStop
 from crazyflie_interfaces.msg import Hover
 import time
+from geometry_msgs.msg import Twist,PoseStamped
+import numpy as np
 
-
-
-class BeginOperationNode(Node): # MODIFY NAME
+class Trajectory(Node):
     def __init__(self):
-        super().__init__("begin_operation") # MODIFY NAME
-        self.declare_parameter('hover_height', 0.1)
-        self.declare_parameter('robot_prefix', '/cf')
-        self.declare_parameter('incoming_twist_topic', '/cmd_vel')
+        super().__init__('trajectory')
+        self.publisher_command = self.create_publisher(Twist,'/cmd_vel', 10)
+        self.position = self.create_subscription(PoseStamped,'cf1/pose',self.callback_position,100)
+        self.timer = self.create_timer(0.5,self.timer_callback)
+        self.threshold_publisher = self.create_publisher(Twist,'/threshold',10)
+        self.x = [0.0,0.3,0.3,0.0,0.0,0.0]
+        self.y = [0.0,0.0,0.3,0.3,0.0,0.0]
+        self.z = [0.2,0.3,0.4,0.3,0.4,0.2]
+        self.current_x = 0.0
+        self.current_y = 0.0
+        self.current_z = 0.0
+        self.index = 0
+        self.i = True
+        self.threshold = 0.01
+        self.x_pos=0.0
+        self.y_pos=0.0
+        self.z_pos=0.0
+    
+    def publish_message(self):
+        msg=Twist()
+        #time.sleep(3.0)
+        self.x_pos = self.x[self.index]
+        self.y_pos = self.y[self.index]
+        self.z_pos = self.z[self.index]
+        msg.linear.x = self.x_pos
+        msg.linear.y = self.y_pos
+        msg.linear.z = self.z_pos
 
-        self.hover_height  = self.get_parameter('hover_height').value
-        robot_prefix  = self.get_parameter('robot_prefix').value
-        incoming_twist_topic  = self.get_parameter('incoming_twist_topic').value
+        self.publisher_command.publish(msg)
+        self.get_logger().info("........................................................................................Publishing Now..........................................................................................................................................")
+        self.index=self.index+1
+    def callback_position(self,msg):
+        if self.i is True:
+            self.init_x = msg.pose.position.x
+            self.init_y = msg.pose.position.y
+            self.init_z = msg.pose.position.z
+            self.i=False
+            self.get_logger().info("...............................................................................................................Set origin.....................................................")
         
-        #self.subscription = self.create_subscription(
-        #    Twist,
-        #    incoming_twist_topic,
-        #    self.cmd_vel_callback,
-        #    10)
-        self.msg_cmd_vel = Twist()
-        self.received_first_cmd_vel = False
-        #timer_period = 0.1
-        #self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.takeoff_client = self.create_client(Takeoff, robot_prefix + '/takeoff')
-        self.publisher_hover = self.create_publisher(Hover, robot_prefix + '/cmd_hover', 10)
-        self.land_client = self.create_client(Land, robot_prefix + '/land')
-        self.notify_client = self.create_client(NotifySetpointsStop, robot_prefix + '/notify_setpoints_stop')
-        self.cf_has_taken_off = False
-        self.finish_pub = self.create_publisher(Bool,'/flag',10)
-        self.takeoff_client.wait_for_service()
-        self.land_client.wait_for_service()
+        self.current_x = msg.pose.position.x-self.init_x
+        self.current_y = msg.pose.position.y-self.init_y
+        self.current_z = msg.pose.position.z-self.init_z
 
-        self.get_logger().info(f"Velocity Multiplexer set for {robot_prefix}"+
-                               f" with height {self.hover_height} m using the {incoming_twist_topic} topic")
-        ##self.req = Takeoff.Request()
-        ##self.req.height = self.hover_height
-        ##self.req.duration = rclpy.duration.Duration(seconds=2.0).to_msg()
-        ##self.takeoff_client.call_async(self.req)
-        ##self.cf_has_taken_off = True
-        ##time.sleep(2.0) 
-        time.sleep(5.0)
-        self.msg = Hover()
-        self.msg.vx = 0.0
-        self.msg.vy = 0.0
-        self.msg.yaw_rate = 0.0
-        self.msg.z_distance = self.hover_height
-        self.publisher_hover.publish(self.msg)
-        self.msg = Bool()
-        self.msg.data = True
-        time.sleep(1.0)
-        self.finish_pub.publish(self.msg)
-        
 
-    #def timer_callback(self):
-    #    self.get_logger().info("Published conformation")
+    def has_reached_point(self,current_pos,desired_pos):
+        distance_to_target = self.calculate_distance(current_pos,desired_pos)
+        return distance_to_target <= self.threshold
+    
+    def calculate_distance(self,current_pos,desired_pos):
+       return np.linalg.norm(np.array(current_pos) - np.array(desired_pos))
+
+    def timer_callback(self):
+        current_pos = (self.current_x,self.current_y,self.current_z)
+        desired_pos = (self.x_pos,self.y_pos,self.z_pos)
+        msg=Twist()
+        msg.linear.x = self.calculate_distance(current_pos,desired_pos)
+        msg.angular.x = self.x_pos-self.current_x
+        msg.angular.y = self.y_pos-self.current_y
+        msg.angular.z = self.z_pos-self.current_z
+        self.threshold_publisher.publish(msg)
+        if self.has_reached_point(current_pos,desired_pos):
+            print(self.has_reached_point(current_pos,desired_pos))
+            self.publish_message()
+        if(self.index==len(self.x)):
+            self.index=0
+            
 
 def main(args=None):
     rclpy.init(args=args)
-    node = BeginOperationNode() # MODIFY NAME
-    rclpy.spin(node)
+
+    trajectory_node = Trajectory()
+    time.sleep(5.0)
+    trajectory_node.publish_message()
+    rclpy.spin(trajectory_node)
     rclpy.shutdown()
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

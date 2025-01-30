@@ -28,17 +28,8 @@ def generate_launch_description():
         ),
         Node(
             package='crazyflie',
-            executable='leader_cf.py',
-            name='leader_cf',
-            output='screen',
-            parameters=[{'hover_height': 0.5},
-                        {'incoming_twist_topic': '/cmd_vel'},
-                        {'robot_prefix': '/cf1'}]
-        ),
-        Node(
-           package='crazyflie',
-            executable='leader_cf.py',
-            name='leader_cf',
+            executable='velocity_controller_test.py',
+            name='velocity_controller_test',
             output='screen',
             parameters=[{'hover_height': 0.5},
                         {'incoming_twist_topic': '/cmd_vel'},
