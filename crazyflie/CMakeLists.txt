@@ -123,6 +123,7 @@ install(PROGRAMS
   scripts/position_controller_1.py
   scripts/position_controller_2.py
   scripts/position_controller_3.py
+  scripts/position_controller_4.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
